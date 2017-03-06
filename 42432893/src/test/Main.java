@@ -8,7 +8,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -18,8 +20,9 @@ public class Main {
 
         List<Path> filePaths = filePathsList(source); // Step 1: get all files from a directory
         List<Path> filteredFilePaths = filter(filePaths); // Step 2: filter by ".txt"
-        List<String> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
+        Map<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
         move(filteredFilePaths, target); // Step 4: move files to destination
+        printToConsole(contentOfFiles);
     }
 
     public static List<Path> filePathsList(String directory) throws IOException {
@@ -41,11 +44,11 @@ public class Main {
         return filteredFilePaths;
     }
 
-    private static List<String> getContentOfFiles(List<Path> filePaths) throws IOException {
-        List<String> contentOfFiles = new ArrayList<>(filePaths.size());
+    private static Map<Path, List<String>> getContentOfFiles(List<Path> filePaths) throws IOException {
+        Map<Path, List<String>> contentOfFiles = new HashMap<>();
         for (Path filePath : filePaths) {
-            String content = new String(Files.readAllBytes(filePath));
-            contentOfFiles.add(content);
+            contentOfFiles.put(filePath, new ArrayList<>());
+            Files.readAllLines(filePath).forEach(contentOfFiles.get(filePath)::add);
         }
         return contentOfFiles;
     }
@@ -59,5 +62,10 @@ public class Main {
             System.out.println("Moving " + filePath.getFileName() + " to " + targetDir.toAbsolutePath());
             Files.move(filePath, Paths.get(target, filePath.getFileName().toString()), StandardCopyOption.ATOMIC_MOVE);
         }   
+    }
+
+    private static void printToConsole(Map<Path, List<String>> contentOfFiles) {
+        System.out.println("Content of files:");
+        contentOfFiles.forEach((k,v) -> v.forEach(System.out::println));
     }
 }
