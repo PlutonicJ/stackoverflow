@@ -11,6 +11,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.jms.Connection;
+import javax.jms.DeliveryMode;
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.Queue;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class Main {
 
@@ -23,6 +31,7 @@ public class Main {
         Map<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
         move(filteredFilePaths, target); // Step 4: move files to destination
         printToConsole(contentOfFiles);
+        sendMessages(contentOfFiles);
     }
 
     public static List<Path> filePathsList(String directory) throws IOException {
@@ -67,5 +76,56 @@ public class Main {
     private static void printToConsole(Map<Path, List<String>> contentOfFiles) {
         System.out.println("Content of files:");
         contentOfFiles.forEach((k,v) -> v.forEach(System.out::println));
+    }
+    
+    private static void sendMessages(Map<Path, List<String>> contentOfFiles) {
+        ActiveMQConnectionFactory factory = null;
+        Connection connection = null;
+        Session session = null;
+        
+        try {
+            factory = new ActiveMQConnectionFactory(ActiveMQConnectionFactory.DEFAULT_BROKER_URL);
+            connection = factory.createConnection();
+            connection.start();
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Queue destination = session.createQueue("TestQueue");
+            final MessageProducer producer = session.createProducer(destination);
+            producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+            final Session sessionForLoop = session;
+            contentOfFiles.forEach((k,v) -> v.forEach((text) -> Main.sendMessage(sessionForLoop, producer, text)));
+            session.commit();
+        } catch (JMSException e) {
+            try {
+                if (session != null) {
+                    session.rollback();
+                }
+            } catch (JMSException ex) {
+                // ignore
+            }
+        } finally {
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (JMSException ex) {
+                    // ignore
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException ex) {
+                    // ignore
+                }
+            }
+        }
+    }
+    
+    public static void sendMessage(Session session, MessageProducer producer, String text) {
+        try {
+            TextMessage message = session.createTextMessage(text);
+            producer.send(message);
+        } catch (JMSException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }
