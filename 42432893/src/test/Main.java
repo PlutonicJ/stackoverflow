@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
@@ -28,7 +30,7 @@ public class Main {
 
         List<Path> filePaths = filePathsList(source); // Step 1: get all files from a directory
         List<Path> filteredFilePaths = filter(filePaths); // Step 2: filter by ".txt"
-        Map<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
+        SortedMap<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
         move(filteredFilePaths, target); // Step 4: move files to destination
         printToConsole(contentOfFiles);
         sendMessages(contentOfFiles);
@@ -53,8 +55,8 @@ public class Main {
         return filteredFilePaths;
     }
 
-    private static Map<Path, List<String>> getContentOfFiles(List<Path> filePaths) throws IOException {
-        Map<Path, List<String>> contentOfFiles = new HashMap<>();
+    private static SortedMap<Path, List<String>> getContentOfFiles(List<Path> filePaths) throws IOException {
+        SortedMap<Path, List<String>> contentOfFiles = new TreeMap<>((path1, path2) -> Long.valueOf(path1.toFile().lastModified()).compareTo(Long.valueOf(path2.toFile().lastModified())));
         for (Path filePath : filePaths) {
             contentOfFiles.put(filePath, new ArrayList<>());
             Files.readAllLines(filePath).forEach(contentOfFiles.get(filePath)::add);
@@ -73,12 +75,12 @@ public class Main {
         }   
     }
 
-    private static void printToConsole(Map<Path, List<String>> contentOfFiles) {
+    private static void printToConsole(SortedMap<Path, List<String>> contentOfFiles) {
         System.out.println("Content of files:");
         contentOfFiles.forEach((k,v) -> v.forEach(System.out::println));
     }
     
-    private static void sendMessages(Map<Path, List<String>> contentOfFiles) {
+    private static void sendMessages(SortedMap<Path, List<String>> contentOfFiles) {
         ActiveMQConnectionFactory factory = null;
         Connection connection = null;
         Session session = null;
