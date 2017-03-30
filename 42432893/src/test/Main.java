@@ -24,16 +24,20 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         String source = "source";
         String target = "target";
 
-        List<Path> filePaths = filePathsList(source); // Step 1: get all files from a directory
-        List<Path> filteredFilePaths = filter(filePaths); // Step 2: filter by ".txt"
-        SortedMap<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
-        move(filteredFilePaths, target); // Step 4: move files to destination
-        printToConsole(contentOfFiles);
-        sendMessages(contentOfFiles);
+        while (true) {
+            List<Path> filePaths = filePathsList(source); // Step 1: get all files from a directory
+            List<Path> filteredFilePaths = filter(filePaths); // Step 2: filter by ".txt"
+            SortedMap<Path, List<String>> contentOfFiles = getContentOfFiles(filteredFilePaths); // Step 3: get content of files
+            move(filteredFilePaths, target); // Step 4: move files to destination
+            printToConsole(contentOfFiles);
+            sendMessages(contentOfFiles);
+            
+            Thread.sleep(5000L);
+        }
     }
 
     public static List<Path> filePathsList(String directory) throws IOException {
